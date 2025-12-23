@@ -22,6 +22,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
   // Load cart from localStorage on mount
   useEffect(() => {
+    // them dieu kien get theo user
     const savedCart = localStorage.getItem("minh-cart")
     if (savedCart) {
       setItems(JSON.parse(savedCart))
@@ -30,7 +31,9 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
   // Save cart to localStorage whenever it changes
   useEffect(() => {
-    localStorage.setItem("minh-cart", JSON.stringify(items))
+    // if else theo user trong localstorage userinfo
+    // check id user if exist thi save theo id user
+    localStorage.setItem("minh-cart___{id}", JSON.stringify(items))
   }, [items])
 
   const addItem = (productId: string, size: string, color: string, quantity: number) => {

@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState, use } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -10,60 +10,227 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Switch } from "@/components/ui/switch"
-import { ArrowLeft } from "lucide-react"
+import { ArrowLeft, Loader2 } from "lucide-react"
 import Link from "next/link"
-import { mockProducts } from "@/lib/mock-data"
 import { notFound } from "next/navigation"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select" // <-- Thêm Select
 
-export default function EditProductPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = use(params)
+// --- Định nghĩa Interface ---
+
+interface Category {
+  id: string
+  name: string
+  // Thêm các trường khác nếu cần (ví dụ: slug)
+}
+
+interface Product {
+  id: string
+  name: string
+  description: string
+  price: number
+  salePrice: number | null
+  category: string // Đây là Category ID
+  sizes: string[]
+  colors: string[]
+  stock: number
+  featured: boolean
+  images: string[]
+}
+
+interface FormData {
+  name: string
+  description: string
+  price: string
+  salePrice: string
+  category: string // Đây là ID của danh mục đã chọn
+  sizes: string
+  colors: string
+  stock: string
+  featured: boolean
+  imageUrl: string
+}
+
+const initialFormData: FormData = {
+  name: "",
+  description: "",
+  price: "0",
+  salePrice: "",
+  category: "",
+  sizes: "",
+  colors: "",
+  stock: "0",
+  featured: false,
+  imageUrl: "",
+}
+
+// --- Component Chính ---
+
+export default function EditProductPage({ params }: { params: { id: string } }) {
+  const { id } = params
   const router = useRouter()
-  const product = mockProducts.find((p) => p.id === id)
 
+  const [categories, setCategories] = useState<Category[]>([])
+  const [formData, setFormData] = useState<FormData>(initialFormData)
+  
+  const [isLoading, setIsLoading] = useState(true)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
-  if (!product) {
-    notFound()
+  // 1. CHỨC NĂNG TẢI DỮ LIỆU BAN ĐẦU (Sản phẩm & Danh mục)
+  const fetchInitialData = useCallback(async () => {
+    setIsLoading(true)
+    setError(null)
+    try {
+      const token = localStorage.getItem("access_token")
+      const headers = {
+        "Content-Type": "application/json",
+        ...(token && { "Authorization": `Bearer ${token}` }),
+      }
+
+      // --- 1a. Tải chi tiết Sản phẩm ---
+      const productRes = await fetch(`http://localhost:8080/products/${id}`, { headers })
+      if (productRes.status === 404) {
+        notFound()
+      }
+      if (!productRes.ok) {
+        throw new Error("Không thể tải chi tiết sản phẩm")
+      }
+      const productData = (await productRes.json()).data as Product // Giả định có trường .data
+
+      // --- 1b. Tải danh sách Danh mục ---
+      const categoryRes = await fetch("http://localhost:8080/categories", { headers })
+      if (!categoryRes.ok) {
+        throw new Error("Không thể tải danh sách danh mục")
+      }
+      const categoryData = (await categoryRes.json()).data as Category[] // Giả định có trường .data
+      setCategories(categoryData || [])
+
+      // Khởi tạo state của form với dữ liệu sản phẩm
+      setFormData({
+        name: productData.name,
+        description: productData.description,
+        price: productData.price.toString(),
+        salePrice: productData.salePrice?.toString() || "",
+        category: productData.category, // Đây là ID danh mục của sản phẩm
+        sizes: productData.sizes.join(", "),
+        colors: productData.colors.join(", "),
+        stock: productData.stock.toString(),
+        featured: productData.featured,
+        imageUrl: productData.images[0] || "",
+      })
+
+    } catch (err) {
+      console.error("❌ Lỗi khi tải dữ liệu:", err)
+      setError(`Lỗi: ${(err as Error).message}. Kiểm tra kết nối API.`)
+    } finally {
+      setIsLoading(false)
+    }
+  }, [id])
+
+  useEffect(() => {
+    fetchInitialData()
+  }, [fetchInitialData])
+
+
+  // Xử lý loading và error state
+  if (isLoading) {
+    return (
+        <div className="space-y-6">
+            <h1 className="font-serif text-3xl font-bold">Chỉnh Sửa Sản Phẩm</h1>
+            <Card className="p-8 text-center flex items-center justify-center gap-2">
+                <Loader2 className="h-4 w-4 animate-spin" /> Đang tải dữ liệu sản phẩm...
+            </Card>
+        </div>
+    )
   }
 
-  const [formData, setFormData] = useState({
-    name: product.name,
-    description: product.description,
-    price: product.price.toString(),
-    salePrice: product.salePrice?.toString() || "",
-    category: product.category,
-    sizes: product.sizes.join(", "),
-    colors: product.colors.join(", "),
-    stock: product.stock.toString(),
-    featured: product.featured,
-    imageUrl: product.images[0] || "",
-  })
+  if (error) {
+    return (
+        <div className="space-y-6">
+            <h1 className="font-serif text-3xl font-bold">Chỉnh Sửa Sản Phẩm</h1>
+            <Card className="p-8 text-center text-red-500">{error}</Card>
+        </div>
+    )
+  }
 
+  // 2. CHỨC NĂNG CẬP NHẬT SẢN PHẨM (PUT/PATCH)
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsSubmitting(true)
+    setError(null) 
 
-    // TODO: Implement actual product update with your backend
-    const productData = {
-      id,
-      ...formData,
+    const productDataToSend = {
+      name: formData.name,
+      description: formData.description,
       price: Number.parseFloat(formData.price),
-      salePrice: formData.salePrice ? Number.parseFloat(formData.salePrice) : undefined,
+      salePrice: formData.salePrice ? Number.parseFloat(formData.salePrice) : null, 
+      category: formData.category, // <-- Gửi Category ID đã chọn
       stock: Number.parseInt(formData.stock),
-      sizes: formData.sizes.split(",").map((s) => s.trim()),
-      colors: formData.colors.split(",").map((c) => c.trim()),
+      featured: formData.featured,
+      
+      sizes: formData.sizes.split(",").map((s) => s.trim()).filter(s => s.length > 0),
+      colors: formData.colors.split(",").map((c) => c.trim()).filter(c => c.length > 0),
+      
       images: formData.imageUrl ? [formData.imageUrl] : [],
     }
 
-    console.log("Update product:", productData)
+    console.log(`Update product data (ID: ${id}) being sent:`, productDataToSend)
 
-    // Simulate API call
-    setTimeout(() => {
-      setIsSubmitting(false)
-      alert("Sản phẩm đã được cập nhật! (Kết nối với backend để lưu thực tế)")
+    try {
+      const token = localStorage.getItem("access_token")
+      const res = await fetch(`http://localhost:8080/products/${id}`, {
+        method: "PUT", // Sử dụng PUT
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`,
+        },
+        body: JSON.stringify(productDataToSend),
+      })
+
+      if (!res.ok) {
+        const errorData = await res.json()
+        throw new Error(errorData.message || res.statusText || "Cập nhật sản phẩm thất bại!")
+      }
+
+      alert("✅ Sản phẩm đã được cập nhật thành công!")
       router.push("/admin/products")
-    }, 1000)
+      
+    } catch (err) {
+      console.error("❌ Lỗi khi cập nhật sản phẩm:", err)
+      setError(`Cập nhật thất bại: ${(err as Error).message}`)
+    } finally {
+      setIsSubmitting(false)
+    }
   }
+  
+  // Xử lý thay đổi form
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { id, value } = e.target
+    setFormData((prev) => ({
+      ...prev,
+      [id]: value,
+    }))
+  }
+
+  const handleSelectChange = (value: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      category: value, // Lưu Category ID
+    }))
+  }
+
+  const handleSwitchChange = (checked: boolean) => {
+    setFormData((prev) => ({
+      ...prev,
+      featured: checked,
+    }))
+  }
+
+  // --- JSX Render ---
+
+  // Tìm tên danh mục hiện tại để hiển thị trong SelectValue
+  const currentCategory = categories.find(cat => cat.id === formData.category);
+
 
   return (
     <div className="space-y-6">
@@ -75,9 +242,15 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
         </Link>
         <div>
           <h1 className="font-serif text-3xl font-bold mb-2">Chỉnh Sửa Sản Phẩm</h1>
-          <p className="text-muted-foreground">Cập nhật thông tin sản phẩm</p>
+          <p className="text-muted-foreground">ID: {id}</p>
         </div>
       </div>
+
+      {error && (
+        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
+            <span className="block sm:inline">{error}</span>
+        </div>
+      )}
 
       <form onSubmit={handleSubmit}>
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -92,7 +265,7 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
                   <Input
                     id="name"
                     value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    onChange={handleInputChange}
                     required
                   />
                 </div>
@@ -103,20 +276,34 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
                     id="description"
                     rows={4}
                     value={formData.description}
-                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                    onChange={handleInputChange}
                     required
                   />
                 </div>
 
+                {/* --- SỬA ĐỔI: SELECT BOX DANH MỤC --- */}
                 <div>
                   <Label htmlFor="category">Danh mục *</Label>
-                  <Input
-                    id="category"
-                    value={formData.category}
-                    onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                  <Select 
+                    value={formData.category} 
+                    onValueChange={handleSelectChange}
                     required
-                  />
+                  >
+                    <SelectTrigger id="category">
+                      {/* Hiển thị tên danh mục hiện tại */}
+                      <SelectValue placeholder={currentCategory?.name || "Chọn danh mục"} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {categories.map((cat) => (
+                        <SelectItem key={cat.id} value={cat.id}>
+                          {cat.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {/* Nếu cần debug: <p className="text-sm text-muted-foreground mt-1">ID đã chọn: {formData.category}</p> */}
                 </div>
+                {/* --- END SỬA ĐỔI --- */}
               </CardContent>
             </Card>
 
@@ -132,7 +319,7 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
                       id="price"
                       type="number"
                       value={formData.price}
-                      onChange={(e) => setFormData({ ...formData, price: e.target.value })}
+                      onChange={handleInputChange}
                       required
                     />
                   </div>
@@ -143,7 +330,7 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
                       id="salePrice"
                       type="number"
                       value={formData.salePrice}
-                      onChange={(e) => setFormData({ ...formData, salePrice: e.target.value })}
+                      onChange={handleInputChange}
                     />
                   </div>
                 </div>
@@ -154,7 +341,7 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
                     id="stock"
                     type="number"
                     value={formData.stock}
-                    onChange={(e) => setFormData({ ...formData, stock: e.target.value })}
+                    onChange={handleInputChange}
                     required
                   />
                 </div>
@@ -171,7 +358,7 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
                   <Input
                     id="sizes"
                     value={formData.sizes}
-                    onChange={(e) => setFormData({ ...formData, sizes: e.target.value })}
+                    onChange={handleInputChange}
                     required
                   />
                   <p className="text-sm text-muted-foreground mt-1">Nhập các size, phân cách bằng dấu phẩy</p>
@@ -182,7 +369,7 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
                   <Input
                     id="colors"
                     value={formData.colors}
-                    onChange={(e) => setFormData({ ...formData, colors: e.target.value })}
+                    onChange={handleInputChange}
                     required
                   />
                   <p className="text-sm text-muted-foreground mt-1">Nhập các màu, phân cách bằng dấu phẩy</p>
@@ -202,7 +389,7 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
                   <Input
                     id="imageUrl"
                     value={formData.imageUrl}
-                    onChange={(e) => setFormData({ ...formData, imageUrl: e.target.value })}
+                    onChange={handleInputChange}
                   />
                 </div>
 
@@ -231,7 +418,7 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
                   <Switch
                     id="featured"
                     checked={formData.featured}
-                    onCheckedChange={(checked) => setFormData({ ...formData, featured: checked })}
+                    onCheckedChange={handleSwitchChange}
                   />
                 </div>
               </CardContent>
@@ -239,7 +426,13 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
 
             <div className="space-y-3">
               <Button type="submit" className="w-full" disabled={isSubmitting}>
-                {isSubmitting ? "Đang xử lý..." : "Cập Nhật Sản Phẩm"}
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Đang xử lý...
+                  </>
+                ) : (
+                  "Cập Nhật Sản Phẩm"
+                )}
               </Button>
               <Link href="/admin/products" className="block">
                 <Button type="button" variant="outline" className="w-full bg-transparent">

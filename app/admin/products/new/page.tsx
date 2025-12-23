@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect } from "react" // <-- Thêm useEffect
 import { useRouter } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -12,17 +12,28 @@ import { Textarea } from "@/components/ui/textarea"
 import { Switch } from "@/components/ui/switch"
 import { ArrowLeft } from "lucide-react"
 import Link from "next/link"
+// import { Select } from "react-day-picker" // <-- Xóa hoặc thay đổi nếu bạn dùng Select tùy chỉnh khác
+
+// Định nghĩa kiểu dữ liệu cho Danh mục (nếu bạn dùng TypeScript)
+interface Category {
+  id: string // Hoặc number, tùy thuộc vào backend của bạn
+  name: string
+}
 
 export default function NewProductPage() {
   const router = useRouter()
   const [isSubmitting, setIsSubmitting] = useState(false)
+  
+  // 1. STATE MỚI: Danh sách danh mục từ API
+  const [categories, setCategories] = useState<Category[]>([]) 
+  const [isCategoriesLoading, setIsCategoriesLoading] = useState(true) // State loading
 
   const [formData, setFormData] = useState({
     name: "",
     description: "",
     price: "",
     salePrice: "",
-    category: "",
+    category: "", // Sẽ lưu ID hoặc name của danh mục đã chọn
     sizes: "",
     colors: "",
     stock: "",
@@ -30,33 +41,139 @@ export default function NewProductPage() {
     imageUrl: "",
   })
 
+  // 2. EFFECT: Gọi API để lấy danh sách Danh mục
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        // Lấy token từ localStorage nếu cần thiết cho API của bạn
+        // const token = localStorage.getItem("access_token");
+
+        setIsCategoriesLoading(true)
+        const res = await fetch("http://localhost:8080/categories", { // <-- Thay đổi URL API này nếu cần
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            // "Authorization": `Bearer ${token}`, // Nếu API cần xác thực
+          },
+        })
+
+        if (!res.ok) {
+          throw new Error("Không thể tải danh mục")
+        }
+
+        // Giả sử API trả về dạng { data: Category[] } hoặc trực tiếp Category[]
+        const data = await res.json()
+        
+        // Kiểm tra và xử lý cấu trúc dữ liệu trả về từ API
+        const categoryList: Category[] = Array.isArray(data) ? data : (data.data || []);
+
+        setCategories(categoryList)
+        console.log("✅ Categories loaded:", categoryList)
+      } catch (err) {
+        console.error("❌ Lỗi khi tải danh mục:", err)
+        // Hiển thị lỗi cho người dùng nếu cần
+      } finally {
+        setIsCategoriesLoading(false)
+      }
+    }
+
+    fetchCategories()
+  }, []) // Chỉ chạy một lần khi component được mount
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsSubmitting(true)
 
-    // TODO: Implement actual product creation with your backend
-    const productData = {
-      ...formData,
-      price: Number.parseFloat(formData.price),
-      salePrice: formData.salePrice ? Number.parseFloat(formData.salePrice) : undefined,
-      stock: Number.parseInt(formData.stock),
-      sizes: formData.sizes.split(",").map((s) => s.trim()),
-      colors: formData.colors.split(",").map((c) => c.trim()),
-      images: formData.imageUrl ? [formData.imageUrl] : [],
-    }
+    try {
+      // 1. Chuẩn bị dữ liệu để gửi lên backend
+      const productData = {
+        name: formData.name,
+        description: formData.description,
+        // Chuyển đổi giá trị string sang number
+        price: Number.parseFloat(formData.price),
+        // Gửi null/undefined tùy theo backend của bạn. Dùng null sẽ tường minh hơn trong JSON.
+        salePrice: formData.salePrice ? Number.parseFloat(formData.salePrice) : null, 
+        stock: Number.parseInt(formData.stock),
+        // Chuyển đổi chuỗi phân cách bằng dấu phẩy thành mảng
+        sizes: formData.sizes.split(",").map((s) => s.trim()).filter(s => s), // Lọc bỏ khoảng trắng rỗng
+        colors: formData.colors.split(",").map((c) => c.trim()).filter(c => c),
+        // Sử dụng category ID đã chọn
+        category: formData.category, 
+        // Gửi mảng images (giả sử backend chấp nhận mảng object hoặc chuỗi URL)
+        // Thay thế bằng cấu trúc phù hợp với API của bạn (ví dụ: `images: [{ url: formData.imageUrl }]` hoặc `mainImage: formData.imageUrl`)
+        images: formData.imageUrl ? [formData.imageUrl] : [], 
+        featured: formData.featured,
+      }
 
-    console.log("Create product:", productData)
+      console.log("Create product:", productData)
 
-    // Simulate API call
-    setTimeout(() => {
+      // 2. Lấy Token xác thực
+      const token = localStorage.getItem("access_token"); 
+      
+      // Kiểm tra token nếu API yêu cầu xác thực
+      if (!token) {
+        alert("Lỗi xác thực. Vui lòng đăng nhập lại.");
+        throw new Error("Missing access token for product creation.");
+      }
+
+      // 3. Gọi API POST để tạo sản phẩm mới
+      const res = await fetch("http://localhost:8080/products", { // <-- URL API tạo sản phẩm
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`, // <-- Gửi token xác thực
+        },
+        body: JSON.stringify(productData),
+      })
+
+      if (!res.ok) {
+        const errorData = await res.json();
+        console.error("Lỗi phản hồi API:", errorData);
+        throw new Error(errorData.message || res.statusText || "Tạo sản phẩm thất bại!");
+      }
+
+      // const data = await res.json() // Nếu bạn cần phản hồi từ backend
+      // console.log("✅ Product created successfully:", data)
+
+      alert("Sản phẩm đã được tạo thành công!")
+      router.push("/admin/products") // Điều hướng sau khi thành công
+
+    } catch (err) {
+      console.error("❌ Lỗi khi tạo sản phẩm:", err)
+      alert(`Tạo sản phẩm thất bại. Chi tiết: ${(err as Error).message}`)
+    } finally {
       setIsSubmitting(false)
-      alert("Sản phẩm đã được tạo! (Kết nối với backend để lưu thực tế)")
-      router.push("/admin/products")
-    }, 1000)
+    }
   }
+
+  // Thay thế Select bằng thẻ <select> HTML và map dữ liệu categories
+  const CategorySelect = () => (
+    <select
+      id="category"
+      value={formData.category}
+      onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+      required
+      // Thêm disabled nếu đang load
+      disabled={isCategoriesLoading}
+      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50" // Thêm lại styling cơ bản của input/select
+    >
+      <option value="" disabled>
+        {isCategoriesLoading ? "Đang tải danh mục..." : "-- Chọn Danh mục --"}
+      </option>
+      
+      {categories.map((cat) => (
+        // Sử dụng cat.id (hoặc slug/tên tùy theo backend) làm value
+        <option key={cat.id} value={cat.id}> 
+          {cat.name}
+        </option>
+      ))}
+    </select>
+  )
+
 
   return (
     <div className="space-y-6">
+      {/* ... (Phần tiêu đề và Button quay lại) */}
       <div className="flex items-center gap-4">
         <Link href="/admin/products">
           <Button variant="ghost" size="icon">
@@ -77,6 +194,7 @@ export default function NewProductPage() {
                 <CardTitle>Thông Tin Cơ Bản</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
+                {/* ... (Tên sản phẩm và Mô tả) */}
                 <div>
                   <Label htmlFor="name">Tên sản phẩm *</Label>
                   <Input
@@ -98,19 +216,15 @@ export default function NewProductPage() {
                   />
                 </div>
 
+                {/* THAY THẾ SELECT CŨ BẰNG COMPONENT MỚI */}
                 <div>
                   <Label htmlFor="category">Danh mục *</Label>
-                  <Input
-                    id="category"
-                    value={formData.category}
-                    onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                    placeholder="Áo Sơ Mi, Quần, Áo Thun, v.v."
-                    required
-                  />
+                  <CategorySelect /> 
                 </div>
               </CardContent>
             </Card>
 
+            {/* ... (Phần Giá & Tồn Kho) */}
             <Card>
               <CardHeader>
                 <CardTitle>Giá & Tồn Kho</CardTitle>
@@ -127,7 +241,6 @@ export default function NewProductPage() {
                       required
                     />
                   </div>
-
                   <div>
                     <Label htmlFor="salePrice">Giá khuyến mãi (₫)</Label>
                     <Input
@@ -152,6 +265,7 @@ export default function NewProductPage() {
               </CardContent>
             </Card>
 
+            {/* ... (Phần Biến Thể) */}
             <Card>
               <CardHeader>
                 <CardTitle>Biến Thể</CardTitle>
@@ -184,6 +298,7 @@ export default function NewProductPage() {
             </Card>
           </div>
 
+          {/* ... (Phần Hình ảnh & Cài đặt) */}
           <div className="lg:col-span-1 space-y-6">
             <Card>
               <CardHeader>

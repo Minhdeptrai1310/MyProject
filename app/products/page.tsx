@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
 import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
 import { ProductCard } from "@/components/product-card"
@@ -10,14 +10,64 @@ import { Input } from "@/components/ui/input"
 import { Search } from "lucide-react"
 
 export default function ProductsPage() {
+  const [products, setProducts] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState("")
   const [selectedCategory, setSelectedCategory] = useState("all")
   const [sortBy, setSortBy] = useState("featured")
 
-  const categories = ["all", ...Array.from(new Set(mockProducts.map((p) => p.category)))]
+  // Fetch products from API
+  useEffect(() => {
+    let mounted = true
+
+    const fetchProducts = async () => {
+      try {
+        setLoading(true)
+
+        const res = await fetch("http://localhost:8080/products", {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        })
+
+        if (!res.ok) {
+          throw new Error("Không thể tải danh sách sản phẩm")
+        }
+
+        const data = await res.json()
+        // Ensure we always store an array in `products` state.
+        const productsData = Array.isArray(data) ? data : data?.products ?? data?.data ?? []
+        // if (mounted) {
+        //   setProducts(productsData)
+        // }
+        setProducts(productsData)
+      } catch (err) {
+        console.error("❌ Fetch products error:", err)
+        // Fallback to mock data
+        if (mounted) {
+          setProducts([])
+        }
+      } finally {
+        if (mounted) {
+          setLoading(false)
+        }
+      }
+    }
+
+    fetchProducts()
+
+    return () => {
+      mounted = false
+    }
+  }, [])
+
+  // Coerce `products` into an array for safe operations (handles API returning object wrappers)
+  const productsArray = Array.isArray(products) ? products : []
+  const categories = ["all", ...Array.from(new Set(productsArray.map((p) => p.category)))]
 
   const filteredAndSortedProducts = useMemo(() => {
-    let filtered = mockProducts
+    let filtered = products
 
     // Filter by search
     if (searchQuery) {
@@ -51,7 +101,7 @@ export default function ProductsPage() {
     }
 
     return sorted
-  }, [searchQuery, selectedCategory, sortBy])
+  }, [searchQuery, selectedCategory, sortBy, products])
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -117,7 +167,11 @@ export default function ProductsPage() {
         {/* Products Grid */}
         <section className="py-12">
           <div className="container mx-auto px-4">
-            {filteredAndSortedProducts.length === 0 ? (
+            {loading ? (
+              <div className="text-center py-12">
+                <p className="text-muted-foreground text-lg">Đang tải sản phẩm...</p>
+              </div>
+            ) : filteredAndSortedProducts.length === 0 ? (
               <div className="text-center py-12">
                 <p className="text-muted-foreground text-lg">Không tìm thấy sản phẩm nào</p>
               </div>

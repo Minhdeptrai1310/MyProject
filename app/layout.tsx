@@ -19,7 +19,7 @@ const playfair = Playfair_Display({
 export const metadata: Metadata = {
   title: "Minh - Thời Trang Cao Cấp",
   description: "Cửa hàng thời trang Minh - Phong cách sang trọng, chất lượng vượt trội",
-    generator: 'v0.app'
+    generator: 'Minh.app'
 }
 
 export default function RootLayout({
@@ -28,8 +28,11 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="vi" className={`${inter.variable} ${playfair.variable} antialiased`}>
-      <body className="font-sans">
+    <html lang="vi">
+      <body 
+      className={`${inter.variable} ${playfair.variable} antialiased`}
+      suppressHydrationWarning={true}
+      >
         <CartProvider>{children}</CartProvider>
       </body>
     </html>

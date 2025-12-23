@@ -35,14 +35,33 @@ export default function RegisterPage() {
 
     setIsLoading(true)
 
-    // TODO: Implement actual registration with your backend
-    console.log("Registration attempt:", formData)
+    try {
+      const res = await fetch("http://localhost:8080/auth/register", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          username: formData.fullName,
+          email: formData.email,
+          password: formData.password,
+          phone: formData.phone,
+        }),
+      })
+      if (!res.ok) {
+        const data = await res.json()
+        throw new Error(data.message || "Đăng ký thất bại")
+      }
+        
 
-    // Simulate API call
-    setTimeout(() => {
-      setIsLoading(false)
+      console.log("✅ Registration successful")
       router.push("/login")
-    }, 1000)
+    } catch (err) {
+      console.error("❌ Registration error:", err)
+      setError(err instanceof Error ? err.message : "Đăng ký thất bại. Vui lòng thử lại!")
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   return (

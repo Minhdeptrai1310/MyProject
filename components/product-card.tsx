@@ -21,6 +21,7 @@ export function ProductCard({ product }: ProductCardProps) {
   const displayPrice = product.salePrice || product.price
 
   const handleQuickAdd = (e: React.MouseEvent) => {
+    debugger;
     e.preventDefault()
     // Add with default size and color
     addItem(product.id, product.sizes[0], product.colors[0], 1)

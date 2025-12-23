@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, use } from "react"
+import { useState, use, useEffect } from "react"
 import Image from "next/image"
 import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
@@ -8,19 +8,83 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { mockProducts } from "@/lib/mock-data"
 import { ShoppingCart, Heart, Minus, Plus } from "lucide-react"
-import { notFound } from "next/navigation"
+import { notFound, useRouter } from "next/navigation"
 import { useCart } from "@/lib/cart-context"
 
 export default function ProductDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params)
-  const product = mockProducts.find((p) => p.id === id)
+  const router = useRouter()
   const { addItem } = useCart()
 
+  const [product, setProduct] = useState<any>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState("")
   const [selectedSize, setSelectedSize] = useState("")
   const [selectedColor, setSelectedColor] = useState("")
   const [quantity, setQuantity] = useState(1)
 
-  if (!product) {
+  useEffect(() => {
+    let mounted = true
+
+    const fetchProduct = async () => {
+      try {
+        setLoading(true)
+        setError("")
+
+        const res = await fetch(`http://localhost:8080/products/${id}`, {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        })
+
+        if (!res.ok) {
+          throw new Error("Không thể tải thông tin sản phẩm")
+        }
+
+        const data = await res.json()
+        if (mounted) {
+          setProduct(data)
+        }
+      } catch (err) {
+        console.error("❌ Fetch product error:", err)
+        if (mounted) {
+          // Fallback to mock data
+          const mockProduct = mockProducts.find((p) => p.id === id)
+          if (mockProduct) {
+            setProduct(mockProduct)
+            setError("")
+          } else {
+            setError("Không tìm thấy sản phẩm")
+          }
+        }
+      } finally {
+        if (mounted) {
+          setLoading(false)
+        }
+      }
+    }
+
+    fetchProduct()
+
+    return () => {
+      mounted = false
+    }
+  }, [id])
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex flex-col">
+        <Header />
+        <main className="flex-1 flex items-center justify-center">
+          <p className="text-lg text-muted-foreground">Đang tải thông tin sản phẩm...</p>
+        </main>
+        <Footer />
+      </div>
+    )
+  }
+
+  if (error || !product) {
     notFound()
   }
 
@@ -86,7 +150,7 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
               <div>
                 <label className="block font-semibold mb-3">Kích thước</label>
                 <div className="flex flex-wrap gap-2">
-                  {product.sizes.map((size) => (
+                  {(product.sizes || []).map((size: string) => (
                     <Button
                       key={size}
                       variant={selectedSize === size ? "default" : "outline"}
@@ -103,7 +167,7 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
               <div>
                 <label className="block font-semibold mb-3">Màu sắc</label>
                 <div className="flex flex-wrap gap-2">
-                  {product.colors.map((color) => (
+                  {(product.colors || []).map((color: string) => (
                     <Button
                       key={color}
                       variant={selectedColor === color ? "default" : "outline"}
