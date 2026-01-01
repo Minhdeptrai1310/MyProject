@@ -12,7 +12,7 @@ export function Header() {
   const [isLoggedIn, setIsLoggedIn] = useState(false)
   const [userInfo, setUserInfo] = useState<any>(null)
   const [showUserMenu, setShowUserMenu] = useState(false)
-  const { totalItems } = useCart()
+  const { items } = useCart()
   const router = useRouter()
 
   useEffect(() => {
@@ -20,9 +20,10 @@ export function Header() {
     const user = localStorage.getItem("user_info")
 
     // SỬA LỖI TẠI ĐÂY: Kiểm tra kỹ giá trị trước khi Parse
-    if (token && user && user !== "undefined" && user !== "null") {
+    if (token && user) {
       try {
         const parsedUser = JSON.parse(user)
+        console.log(parsedUser);
         setUserInfo(parsedUser)
         setIsLoggedIn(true)
       } catch (err) {
@@ -42,13 +43,13 @@ export function Header() {
     localStorage.removeItem("access_token")
     localStorage.removeItem("token_expire")
     localStorage.removeItem("user_info")
-    
+
     // Reset state để giao diện cập nhật ngay
     setIsLoggedIn(false)
     setUserInfo(null)
     setShowUserMenu(false)
     setMobileMenuOpen(false)
-    
+
     router.push("/login")
   }
 
@@ -82,9 +83,9 @@ export function Header() {
             <Link href="/cart" className="relative">
               <Button variant="ghost" size="icon">
                 <ShoppingCart className="h-5 w-5" />
-                {totalItems > 0 && (
+                {items.length > 0 && (
                   <span className="absolute -top-1 -right-1 bg-black text-white text-[10px] rounded-full h-4 w-4 flex items-center justify-center">
-                    {totalItems}
+                    {items.length}
                   </span>
                 )}
               </Button>
@@ -92,13 +93,19 @@ export function Header() {
 
             {isLoggedIn ? (
               <div className="relative hidden md:block">
-                <Button
-                  variant="ghost"
-                  size="icon"
+                <div
+                  className="flex gap-[8px] items-center cursor-pointer"
                   onClick={() => setShowUserMenu(!showUserMenu)}
                 >
-                  <User className="h-5 w-5" />
-                </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="rounded-full bg-gray-100 cursor-pointer"
+                  >
+                    {userInfo?.picture ? <img src={userInfo?.picture} className="overflow-hidden rounded-full"/> : <User className="h-5 w-5" />}
+                  </Button>
+                  <span>{userInfo?.fullName || userInfo?.name || ""}</span>
+                </div>
                 {showUserMenu && (
                   <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 z-[100]">
                     <div className="p-4 border-b">

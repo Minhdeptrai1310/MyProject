@@ -13,7 +13,7 @@ import { Label } from "@/components/ui/label"
 
 interface UserInfo {
   id: string
-  fullName: string
+  name: string
   email: string
   phone: string
   role: "customer" | "admin"
@@ -77,14 +77,14 @@ export default function AccountPage() {
         return
       }
 
-      const res = await fetch("http://localhost:8080/auth/profile", {
+      const res = await fetch(`http://localhost:8080/users/${user?.id}/profile`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
-          fullName: editData.fullName,
+          name: editData.name,
           phone: editData.phone,
         }),
       })
@@ -95,6 +95,9 @@ export default function AccountPage() {
       }
 
       const data = await res.json()
+      if (!data.success)
+        throw new Error("Cập nhật thất bại")
+
       setUser(data.data)
       localStorage.setItem("user_info", JSON.stringify(data.data))
       setMessage({ type: "success", text: "Cập nhật thông tin thành công!" })
@@ -174,9 +177,9 @@ export default function AccountPage() {
                 <CardHeader>
                   <div className="flex flex-col items-center">
                     <div className="w-20 h-20 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white text-2xl font-bold mb-4">
-                      {user?.fullName?.charAt(0)?.toUpperCase() || "U"}
+                      {user?.name?.charAt(0)?.toUpperCase() || "U"}
                     </div>
-                    <h3 className="text-lg font-semibold text-center">{user.fullName}</h3>
+                    <h3 className="text-lg font-semibold text-center">{user.name}</h3>
                     <p className="text-sm text-gray-500 text-center mt-1">
                       {user.role === "admin" ? "Quản trị viên" : "Khách hàng"}
                     </p>
@@ -229,20 +232,20 @@ export default function AccountPage() {
                   <div className="space-y-6">
                     {/* Full Name */}
                     <div>
-                      <Label htmlFor="fullName" className="text-base mb-2 block">
+                      <Label htmlFor="name" className="text-base mb-2 block">
                         Họ và tên
                       </Label>
                       {isEditing ? (
                         <Input
-                          id="fullName"
-                          name="fullName"
-                          value={editData.fullName || ""}
+                          id="name"
+                          name="name"
+                          value={editData.name || ""}
                           onChange={handleInputChange}
                           className="text-base"
                         />
                       ) : (
                         <div className="bg-gray-50 p-3 rounded-lg border border-gray-200">
-                          <p className="text-base">{user.fullName}</p>
+                          <p className="text-base">{user.name}</p>
                         </div>
                       )}
                     </div>

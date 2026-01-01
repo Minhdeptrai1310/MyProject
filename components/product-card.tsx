@@ -21,12 +21,16 @@ export function ProductCard({ product }: ProductCardProps) {
   const displayPrice = product.salePrice || product.price
 
   const handleQuickAdd = (e: React.MouseEvent) => {
-    debugger;
     e.preventDefault()
-    // Add with default size and color
+    console.log({
+      productId: product.id,
+      size: product.sizes[0],
+      color: product.colors[0],
+      quantity: 1
+    })
     addItem(product.id, product.sizes[0], product.colors[0], 1)
   }
-
+  
   return (
     <Card className="group overflow-hidden hover:shadow-lg transition-shadow">
       <Link href={`/products/${product.id}`}>
@@ -38,7 +42,7 @@ export function ProductCard({ product }: ProductCardProps) {
             className="object-cover group-hover:scale-105 transition-transform duration-300"
           />
           {hasDiscount && (
-            <Badge className="absolute top-2 right-2 bg-destructive text-destructive-foreground">
+            <Badge className="absolute top-2 right-2 bg-destructive text-destructive-foreground text-[#111113] font-bold">
               -{Math.round(((product.price - displayPrice) / product.price) * 100)}%
             </Badge>
           )}

@@ -34,7 +34,7 @@ export default function AdminProductsPage() {
       // Lấy token từ localStorage (nếu API cần xác thực)
       const token = localStorage.getItem("access_token") 
       
-      const res = await fetch("http://localhost:8080/products", { // <-- URL API lấy tất cả sản phẩm
+      const res = await fetch("http://localhost:8080/products/", { // <-- URL API lấy tất cả sản phẩm
         method: "GET",
         headers: {
           "Content-Type": "application/json",
@@ -186,7 +186,7 @@ export default function AdminProductsPage() {
                       <td className="py-3 px-4">{product.category}</td>
                       <td className="py-3 px-4">
                         <div>
-                          {product.salePrice && (
+                          {(product.salePrice && product.salePrice < product.price) && (
                             <p className="text-sm text-muted-foreground line-through">
                               {product.price.toLocaleString("vi-VN")}₫
                             </p>

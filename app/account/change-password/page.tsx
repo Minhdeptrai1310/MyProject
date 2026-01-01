@@ -11,6 +11,7 @@ import { Footer } from "@/components/footer"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Loader2, ArrowLeft, ShieldCheck } from "lucide-react"
+import { useUser } from "@/lib/user-context"
 
 export default function ChangePasswordPage() {
   const router = useRouter()
@@ -22,6 +23,7 @@ export default function ChangePasswordPage() {
     confirmPassword: "",
   })
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null)
+  const { user } = useUser();
 
   // Kiểm tra quyền truy cập: Nếu không có token thì về trang login
   useEffect(() => {
@@ -57,21 +59,21 @@ export default function ChangePasswordPage() {
     try {
       const token = localStorage.getItem("access_token")
       
-      const res = await fetch("http://localhost:8080/auth/change-password", {
+      const res = await fetch(`http://localhost:8080/auth/${user.id}/change_password`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
-          currentPassword: formData.currentPassword,
-          newPassword: formData.newPassword,
+          old_password: formData.currentPassword,
+          new_password: formData.newPassword,
         }),
       })
 
       const data = await res.json()
 
-      if (!res.ok) {
+      if (!res.ok || !data.success) {
         // Lấy thông báo lỗi từ cấu trúc errorResponse của bạn
         throw new Error(data.detail?.message || data.message || "Đổi mật khẩu thất bại")
       }

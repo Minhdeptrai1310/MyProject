@@ -12,6 +12,8 @@ import { Textarea } from "@/components/ui/textarea"
 import { Switch } from "@/components/ui/switch"
 import { ArrowLeft } from "lucide-react"
 import Link from "next/link"
+import ImageUploadInput from "@/components/ui/upload"
+
 // import { Select } from "react-day-picker" // <-- Xóa hoặc thay đổi nếu bạn dùng Select tùy chỉnh khác
 
 // Định nghĩa kiểu dữ liệu cho Danh mục (nếu bạn dùng TypeScript)
@@ -23,9 +25,9 @@ interface Category {
 export default function NewProductPage() {
   const router = useRouter()
   const [isSubmitting, setIsSubmitting] = useState(false)
-  
+
   // 1. STATE MỚI: Danh sách danh mục từ API
-  const [categories, setCategories] = useState<Category[]>([]) 
+  const [categories, setCategories] = useState<Category[]>([])
   const [isCategoriesLoading, setIsCategoriesLoading] = useState(true) // State loading
 
   const [formData, setFormData] = useState({
@@ -63,7 +65,7 @@ export default function NewProductPage() {
 
         // Giả sử API trả về dạng { data: Category[] } hoặc trực tiếp Category[]
         const data = await res.json()
-        
+
         // Kiểm tra và xử lý cấu trúc dữ liệu trả về từ API
         const categoryList: Category[] = Array.isArray(data) ? data : (data.data || []);
 
@@ -92,24 +94,24 @@ export default function NewProductPage() {
         // Chuyển đổi giá trị string sang number
         price: Number.parseFloat(formData.price),
         // Gửi null/undefined tùy theo backend của bạn. Dùng null sẽ tường minh hơn trong JSON.
-        salePrice: formData.salePrice ? Number.parseFloat(formData.salePrice) : null, 
+        salePrice: formData.salePrice ? Number.parseFloat(formData.salePrice) : null,
         stock: Number.parseInt(formData.stock),
         // Chuyển đổi chuỗi phân cách bằng dấu phẩy thành mảng
         sizes: formData.sizes.split(",").map((s) => s.trim()).filter(s => s), // Lọc bỏ khoảng trắng rỗng
         colors: formData.colors.split(",").map((c) => c.trim()).filter(c => c),
         // Sử dụng category ID đã chọn
-        category: formData.category, 
+        category: formData.category,
         // Gửi mảng images (giả sử backend chấp nhận mảng object hoặc chuỗi URL)
         // Thay thế bằng cấu trúc phù hợp với API của bạn (ví dụ: `images: [{ url: formData.imageUrl }]` hoặc `mainImage: formData.imageUrl`)
-        images: formData.imageUrl ? [formData.imageUrl] : [], 
+        images: formData.imageUrl ? [formData.imageUrl] : [],
         featured: formData.featured,
       }
 
       console.log("Create product:", productData)
 
       // 2. Lấy Token xác thực
-      const token = localStorage.getItem("access_token"); 
-      
+      const token = localStorage.getItem("access_token");
+
       // Kiểm tra token nếu API yêu cầu xác thực
       if (!token) {
         alert("Lỗi xác thực. Vui lòng đăng nhập lại.");
@@ -117,7 +119,7 @@ export default function NewProductPage() {
       }
 
       // 3. Gọi API POST để tạo sản phẩm mới
-      const res = await fetch("http://localhost:8080/products", { // <-- URL API tạo sản phẩm
+      const res = await fetch("http://localhost:8080/products/", { // <-- URL API tạo sản phẩm
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -160,10 +162,10 @@ export default function NewProductPage() {
       <option value="" disabled>
         {isCategoriesLoading ? "Đang tải danh mục..." : "-- Chọn Danh mục --"}
       </option>
-      
+
       {categories.map((cat) => (
         // Sử dụng cat.id (hoặc slug/tên tùy theo backend) làm value
-        <option key={cat.id} value={cat.id}> 
+        <option key={cat.id} value={cat.id}>
           {cat.name}
         </option>
       ))}
@@ -195,7 +197,7 @@ export default function NewProductPage() {
               </CardHeader>
               <CardContent className="space-y-4">
                 {/* ... (Tên sản phẩm và Mô tả) */}
-                <div>
+                <div className="flex flex-col gap-2">
                   <Label htmlFor="name">Tên sản phẩm *</Label>
                   <Input
                     id="name"
@@ -205,7 +207,7 @@ export default function NewProductPage() {
                   />
                 </div>
 
-                <div>
+                <div className="flex flex-col gap-2">
                   <Label htmlFor="description">Mô tả *</Label>
                   <Textarea
                     id="description"
@@ -217,9 +219,9 @@ export default function NewProductPage() {
                 </div>
 
                 {/* THAY THẾ SELECT CŨ BẰNG COMPONENT MỚI */}
-                <div>
+                <div className="flex flex-col gap-2">
                   <Label htmlFor="category">Danh mục *</Label>
-                  <CategorySelect /> 
+                  <CategorySelect />
                 </div>
               </CardContent>
             </Card>
@@ -231,7 +233,7 @@ export default function NewProductPage() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
-                  <div>
+                  <div className="flex flex-col gap-2">
                     <Label htmlFor="price">Giá gốc (₫) *</Label>
                     <Input
                       id="price"
@@ -241,7 +243,7 @@ export default function NewProductPage() {
                       required
                     />
                   </div>
-                  <div>
+                  <div className="flex flex-col gap-2">
                     <Label htmlFor="salePrice">Giá khuyến mãi (₫)</Label>
                     <Input
                       id="salePrice"
@@ -252,7 +254,7 @@ export default function NewProductPage() {
                   </div>
                 </div>
 
-                <div>
+                <div className="flex flex-col gap-2">
                   <Label htmlFor="stock">Số lượng tồn kho *</Label>
                   <Input
                     id="stock"
@@ -271,7 +273,7 @@ export default function NewProductPage() {
                 <CardTitle>Biến Thể</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div>
+                <div className="flex flex-col gap-2">
                   <Label htmlFor="sizes">Kích thước *</Label>
                   <Input
                     id="sizes"
@@ -283,7 +285,7 @@ export default function NewProductPage() {
                   <p className="text-sm text-muted-foreground mt-1">Nhập các size, phân cách bằng dấu phẩy</p>
                 </div>
 
-                <div>
+                <div className="flex flex-col gap-2">
                   <Label htmlFor="colors">Màu sắc *</Label>
                   <Input
                     id="colors"
@@ -305,28 +307,14 @@ export default function NewProductPage() {
                 <CardTitle>Hình Ảnh</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div>
-                  <Label htmlFor="imageUrl">URL hình ảnh</Label>
-                  <Input
-                    id="imageUrl"
-                    value={formData.imageUrl}
-                    onChange={(e) => setFormData({ ...formData, imageUrl: e.target.value })}
-                    placeholder="https://example.com/image.jpg"
-                  />
-                  <p className="text-sm text-muted-foreground mt-1">
-                    Nhập URL hình ảnh hoặc upload qua backend của bạn
-                  </p>
+                <div className="flex flex-col gap-2">
+                  <ImageUploadInput
+                    fileUrl={formData.imageUrl || ""}
+                    onChangeFileUrl={(value) => setFormData({
+                      ...formData,
+                      imageUrl: value
+                    })} />
                 </div>
-
-                {formData.imageUrl && (
-                  <div className="relative aspect-square bg-muted rounded-lg overflow-hidden">
-                    <img
-                      src={formData.imageUrl || "/placeholder.svg"}
-                      alt="Preview"
-                      className="object-cover w-full h-full"
-                    />
-                  </div>
-                )}
               </CardContent>
             </Card>
 

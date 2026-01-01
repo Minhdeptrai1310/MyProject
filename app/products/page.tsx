@@ -4,63 +4,21 @@ import { useState, useMemo, useEffect } from "react"
 import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
 import { ProductCard } from "@/components/product-card"
-import { mockProducts } from "@/lib/mock-data"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Input } from "@/components/ui/input"
 import { Search } from "lucide-react"
+import { useProduct } from "@/lib/product-context"
 
 export default function ProductsPage() {
+  const { items, loading } = useProduct();
   const [products, setProducts] = useState<any[]>([])
-  const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState("")
   const [selectedCategory, setSelectedCategory] = useState("all")
   const [sortBy, setSortBy] = useState("featured")
 
-  // Fetch products from API
   useEffect(() => {
-    let mounted = true
-
-    const fetchProducts = async () => {
-      try {
-        setLoading(true)
-
-        const res = await fetch("http://localhost:8080/products", {
-          method: "GET",
-          headers: {
-            "Content-Type": "application/json",
-          },
-        })
-
-        if (!res.ok) {
-          throw new Error("Không thể tải danh sách sản phẩm")
-        }
-
-        const data = await res.json()
-        // Ensure we always store an array in `products` state.
-        const productsData = Array.isArray(data) ? data : data?.products ?? data?.data ?? []
-        // if (mounted) {
-        //   setProducts(productsData)
-        // }
-        setProducts(productsData)
-      } catch (err) {
-        console.error("❌ Fetch products error:", err)
-        // Fallback to mock data
-        if (mounted) {
-          setProducts([])
-        }
-      } finally {
-        if (mounted) {
-          setLoading(false)
-        }
-      }
-    }
-
-    fetchProducts()
-
-    return () => {
-      mounted = false
-    }
-  }, [])
+    setProducts(items);
+  }, [items])
 
   // Coerce `products` into an array for safe operations (handles API returning object wrappers)
   const productsArray = Array.isArray(products) ? products : []

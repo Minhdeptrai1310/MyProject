@@ -3,13 +3,14 @@
 import type React from "react"
 import { createContext, useContext, useState, useEffect } from "react"
 import type { CartItem } from "./types"
-import { mockProducts } from "./mock-data"
+import { useProduct } from "./product-context"
+import { useUser } from "./user-context"
 
 interface CartContextType {
   items: CartItem[]
   addItem: (productId: string, size: string, color: string, quantity: number) => void
-  removeItem: (productId: string, size: string, color: string) => void
-  updateQuantity: (productId: string, size: string, color: string, quantity: number) => void
+  removeItem: (id: string, productId: string, size: string, color: string) => void
+  updateQuantity: (id: string, productId: string, size: string, color: string, quantity: number) => void
   clearCart: () => void
   totalItems: number
   totalPrice: number
@@ -19,53 +20,71 @@ const CartContext = createContext<CartContextType | undefined>(undefined)
 
 export function CartProvider({ children }: { children: React.ReactNode }) {
   const [items, setItems] = useState<CartItem[]>([])
+  const { getProductById, items: productItems } = useProduct();
+  const { user } = useUser();
 
-  // Load cart from localStorage on mount
-  useEffect(() => {
-    // them dieu kien get theo user
-    const savedCart = localStorage.getItem("minh-cart")
-    if (savedCart) {
-      setItems(JSON.parse(savedCart))
+  const getAllCartByUserId = async () => {
+    const res = await fetch(`http://localhost:8080/cart/${user.id}`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    })
+    if (!res.ok) {
+      throw new Error("Không thể tải danh sách sản phẩm")
     }
-  }, [])
 
-  // Save cart to localStorage whenever it changes
+    const data = await res.json()
+    const cartData = Array.isArray(data) ? data : data?.data ?? []
+    const cartDatas = cartData.map((data: any) => {
+      const product = getProductById(data.productId);
+      if (!product) return;
+      data.product = product;
+      return data;
+    })
+    setItems(() => [...cartDatas]);
+  }
   useEffect(() => {
-    // if else theo user trong localstorage userinfo
-    // check id user if exist thi save theo id user
-    localStorage.setItem("minh-cart___{id}", JSON.stringify(items))
-  }, [items])
+    if (user)
+      getAllCartByUserId();
+  }, [user, productItems])
 
-  const addItem = (productId: string, size: string, color: string, quantity: number) => {
-    const product = mockProducts.find((p) => p.id === productId)
+  const addItem = async (productId: string, size: string, color: string, quantity: number) => {
+    const product = getProductById(productId);
     if (!product) return
 
-    setItems((prev) => {
-      const existingItem = prev.find(
-        (item) => item.productId === productId && item.size === size && item.color === color,
-      )
-
-      if (existingItem) {
-        return prev.map((item) =>
-          item.productId === productId && item.size === size && item.color === color
-            ? { ...item, quantity: item.quantity + quantity }
-            : item,
-        )
-      }
-
-      return [...prev, { productId, product, size, color, quantity }]
+    const res = await fetch('http://localhost:8080/cart/', {
+      method: 'POST',
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        userId: user.id,
+        productId,
+        size,
+        color,
+        quantity
+      })
     })
+    if (res.ok) {
+      getAllCartByUserId();
+    }
   }
 
-  const removeItem = (productId: string, size: string, color: string) => {
+  const removeItem = async (id: string, productId: string, size: string, color: string) => {
     setItems((prev) =>
       prev.filter((item) => !(item.productId === productId && item.size === size && item.color === color)),
     )
+    const res = await fetch(`http://localhost:8080/cart/${id}`, {
+      method: 'DELETE',
+      headers: { "Content-Type": "application/json" }
+    })
+    if (res.ok) {
+      getAllCartByUserId();
+    }
   }
 
-  const updateQuantity = (productId: string, size: string, color: string, quantity: number) => {
+  const updateQuantity = async (id: string, productId: string, size: string, color: string, quantity: number) => {
     if (quantity <= 0) {
-      removeItem(productId, size, color)
+      removeItem(id, productId, size, color)
       return
     }
 
@@ -74,16 +93,31 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         item.productId === productId && item.size === size && item.color === color ? { ...item, quantity } : item,
       ),
     )
+
+    const res = await fetch(`http://localhost:8080/cart/${id}`, {
+      method: 'PUT',
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        userId: user.id,
+        productId,
+        size,
+        color,
+        quantity
+      })
+    })
+    if (res.ok) {
+      getAllCartByUserId();
+    }
   }
 
   const clearCart = () => {
     setItems([])
   }
 
-  const totalItems = items.reduce((sum, item) => sum + item.quantity, 0)
+  const totalItems = items.reduce((sum, item) => sum + item?.quantity, 0)
   const totalPrice = items.reduce((sum, item) => {
-    const price = item.product.salePrice || item.product.price
-    return sum + price * item.quantity
+    const price = item?.product.salePrice || item?.product.price
+    return sum + Number(price) * item?.quantity
   }, 0)
 
   return (

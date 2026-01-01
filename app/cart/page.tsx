@@ -10,7 +10,7 @@ import Link from "next/link"
 import { Minus, Plus, Trash2, ShoppingBag } from "lucide-react"
 
 export default function CartPage() {
-  const { items, updateQuantity, removeItem, totalPrice, totalItems } = useCart()
+  const { items, updateQuantity, removeItem, totalPrice } = useCart()
 
   if (items.length === 0) {
     return (
@@ -39,13 +39,14 @@ export default function CartPage() {
 
       <main className="flex-1 py-8 md:py-12">
         <div className="container mx-auto px-4">
-          <h1 className="font-serif text-3xl md:text-4xl font-bold mb-8">Giỏ Hàng ({totalItems} sản phẩm)</h1>
+          <h1 className="font-serif text-3xl md:text-4xl font-bold mb-8">Giỏ Hàng ({items.length} sản phẩm)</h1>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* Cart Items */}
             <div className="lg:col-span-2 space-y-4">
               {items.map((item) => {
-                const price = item.product.salePrice || item.product.price
+                if (!item) return;
+                const price: any = item?.product.salePrice || item?.product.price
                 return (
                   <Card key={`${item.productId}-${item.size}-${item.color}`} className="p-4">
                     <div className="flex gap-4">
@@ -79,7 +80,7 @@ export default function CartPage() {
                               variant="outline"
                               size="icon"
                               className="h-8 w-8 bg-transparent"
-                              onClick={() => updateQuantity(item.productId, item.size, item.color, item.quantity - 1)}
+                              onClick={() => updateQuantity(item.id, item.productId, item.size, item.color, item.quantity - 1)}
                             >
                               <Minus className="h-3 w-3" />
                             </Button>
@@ -88,7 +89,7 @@ export default function CartPage() {
                               variant="outline"
                               size="icon"
                               className="h-8 w-8 bg-transparent"
-                              onClick={() => updateQuantity(item.productId, item.size, item.color, item.quantity + 1)}
+                              onClick={() => updateQuantity(item.id, item.productId, item.size, item.color, item.quantity + 1)}
                               disabled={item.quantity >= item.product.stock}
                             >
                               <Plus className="h-3 w-3" />
@@ -102,7 +103,7 @@ export default function CartPage() {
                               variant="ghost"
                               size="sm"
                               className="text-destructive hover:text-destructive"
-                              onClick={() => removeItem(item.productId, item.size, item.color)}
+                              onClick={() => removeItem(item.id, item.productId, item.size, item.color)}
                             >
                               <Trash2 className="h-4 w-4 mr-1" />
                               Xóa

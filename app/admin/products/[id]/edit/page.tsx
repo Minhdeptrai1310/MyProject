@@ -14,6 +14,7 @@ import { ArrowLeft, Loader2 } from "lucide-react"
 import Link from "next/link"
 import { notFound } from "next/navigation"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select" // <-- Thêm Select
+import ImageUploadInput from "@/components/ui/upload"
 
 // --- Định nghĩa Interface ---
 
@@ -71,7 +72,7 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
 
   const [categories, setCategories] = useState<Category[]>([])
   const [formData, setFormData] = useState<FormData>(initialFormData)
-  
+
   const [isLoading, setIsLoading] = useState(true)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -135,21 +136,21 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
   // Xử lý loading và error state
   if (isLoading) {
     return (
-        <div className="space-y-6">
-            <h1 className="font-serif text-3xl font-bold">Chỉnh Sửa Sản Phẩm</h1>
-            <Card className="p-8 text-center flex items-center justify-center gap-2">
-                <Loader2 className="h-4 w-4 animate-spin" /> Đang tải dữ liệu sản phẩm...
-            </Card>
-        </div>
+      <div className="space-y-6">
+        <h1 className="font-serif text-3xl font-bold">Chỉnh Sửa Sản Phẩm</h1>
+        <Card className="p-8 text-center flex items-center justify-center gap-2">
+          <Loader2 className="h-4 w-4 animate-spin" /> Đang tải dữ liệu sản phẩm...
+        </Card>
+      </div>
     )
   }
 
   if (error) {
     return (
-        <div className="space-y-6">
-            <h1 className="font-serif text-3xl font-bold">Chỉnh Sửa Sản Phẩm</h1>
-            <Card className="p-8 text-center text-red-500">{error}</Card>
-        </div>
+      <div className="space-y-6">
+        <h1 className="font-serif text-3xl font-bold">Chỉnh Sửa Sản Phẩm</h1>
+        <Card className="p-8 text-center text-red-500">{error}</Card>
+      </div>
     )
   }
 
@@ -157,20 +158,20 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsSubmitting(true)
-    setError(null) 
+    setError(null)
 
     const productDataToSend = {
       name: formData.name,
       description: formData.description,
       price: Number.parseFloat(formData.price),
-      salePrice: formData.salePrice ? Number.parseFloat(formData.salePrice) : null, 
+      salePrice: formData.salePrice ? Number.parseFloat(formData.salePrice) : null,
       category: formData.category, // <-- Gửi Category ID đã chọn
       stock: Number.parseInt(formData.stock),
       featured: formData.featured,
-      
+
       sizes: formData.sizes.split(",").map((s) => s.trim()).filter(s => s.length > 0),
       colors: formData.colors.split(",").map((c) => c.trim()).filter(c => c.length > 0),
-      
+
       images: formData.imageUrl ? [formData.imageUrl] : [],
     }
 
@@ -194,7 +195,7 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
 
       alert("✅ Sản phẩm đã được cập nhật thành công!")
       router.push("/admin/products")
-      
+
     } catch (err) {
       console.error("❌ Lỗi khi cập nhật sản phẩm:", err)
       setError(`Cập nhật thất bại: ${(err as Error).message}`)
@@ -202,7 +203,7 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
       setIsSubmitting(false)
     }
   }
-  
+
   // Xử lý thay đổi form
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { id, value } = e.target
@@ -248,7 +249,7 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
 
       {error && (
         <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
-            <span className="block sm:inline">{error}</span>
+          <span className="block sm:inline">{error}</span>
         </div>
       )}
 
@@ -284,8 +285,8 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
                 {/* --- SỬA ĐỔI: SELECT BOX DANH MỤC --- */}
                 <div>
                   <Label htmlFor="category">Danh mục *</Label>
-                  <Select 
-                    value={formData.category} 
+                  <Select
+                    value={formData.category}
                     onValueChange={handleSelectChange}
                     required
                   >
@@ -384,24 +385,14 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
                 <CardTitle>Hình Ảnh</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div>
-                  <Label htmlFor="imageUrl">URL hình ảnh</Label>
-                  <Input
-                    id="imageUrl"
-                    value={formData.imageUrl}
-                    onChange={handleInputChange}
-                  />
+                <div className="flex flex-col gap-2">
+                  <ImageUploadInput
+                    fileUrl={formData.imageUrl || ""}
+                    onChangeFileUrl={(value) => setFormData({
+                      ...formData,
+                      imageUrl: value
+                    })} />
                 </div>
-
-                {formData.imageUrl && (
-                  <div className="relative aspect-square bg-muted rounded-lg overflow-hidden">
-                    <img
-                      src={formData.imageUrl || "/placeholder.svg"}
-                      alt="Preview"
-                      className="object-cover w-full h-full"
-                    />
-                  </div>
-                )}
               </CardContent>
             </Card>
 

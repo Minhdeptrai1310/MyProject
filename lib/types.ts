@@ -26,11 +26,24 @@ export interface Product {
 
 // Cart types
 export interface CartItem {
+  id: string
   productId: string
-  product: Product
+  product: ProductItem
   quantity: number
   size: string
   color: string
+}
+
+export interface ProductItem {
+  id: string
+  name: string
+  price: string
+  salePrice: string
+  category: string
+  sizes: string[]
+  colors: string[]
+  stock: number
+  images: string[]
 }
 
 // Order types
