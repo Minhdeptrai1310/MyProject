@@ -1,13 +1,18 @@
+"use client"
+
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
 import { ProductCard } from "@/components/product-card"
-import { mockProducts } from "@/lib/mock-data"
 import { ArrowRight } from "lucide-react"
+import { useProduct } from "@/lib/product-context"
 
 export default function HomePage() {
-  const featuredProducts = mockProducts.filter((p) => p.featured)
+  const { items } = useProduct();
+  console.log(items);
+  
+  const featuredProducts = items.filter((p) => p.featured)
 
   return (
     <div className="min-h-screen flex flex-col">

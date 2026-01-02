@@ -5,6 +5,10 @@ import "./globals.css"
 import { CartProvider } from "@/lib/cart-context"
 import { ProductProvider } from "@/lib/product-context"
 import { UserProvider } from "@/lib/user-context"
+import NextTopLoader from "nextjs-toploader";
+import { Suspense } from "react"
+import Skeleton from "react-loading-skeleton";
+import "react-loading-skeleton/dist/skeleton.css";
 
 const inter = Inter({
   subsets: ["latin", "vietnamese"],
@@ -24,6 +28,15 @@ export const metadata: Metadata = {
   generator: 'Minh.app'
 }
 
+function PostSkeleton() {
+  return (
+    <div className="space-y-2">
+      <Skeleton height={24} width="60%" />
+      <Skeleton height={16} count={3} />
+    </div>
+  );
+}
+
 export default function RootLayout({
   children,
 }: {
@@ -35,10 +48,17 @@ export default function RootLayout({
         className={`${inter.variable} ${playfair.variable} antialiased`}
         suppressHydrationWarning={true}
       >
+        <NextTopLoader
+          color="#171717"
+          height={3}
+          showSpinner={true}
+        />
         <UserProvider>
           <ProductProvider>
             <CartProvider>
-              {children}
+              <Suspense fallback={<PostSkeleton />}>
+                {children}
+              </Suspense>
             </CartProvider>
           </ProductProvider>
         </UserProvider>

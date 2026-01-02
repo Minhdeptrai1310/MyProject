@@ -7,12 +7,12 @@ import Link from "next/link"
 import { Card, CardContent, CardFooter } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import type { Product } from "@/lib/types"
+import type { Product, ProductItem } from "@/lib/types"
 import { ShoppingCart } from "lucide-react"
 import { useCart } from "@/lib/cart-context"
 
 interface ProductCardProps {
-  product: Product
+  product: Product | ProductItem
 }
 
 export function ProductCard({ product }: ProductCardProps) {

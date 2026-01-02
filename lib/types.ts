@@ -44,6 +44,7 @@ export interface ProductItem {
   colors: string[]
   stock: number
   images: string[]
+  featured: boolean
 }
 
 // Order types

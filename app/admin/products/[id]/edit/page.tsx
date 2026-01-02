@@ -15,7 +15,7 @@ import Link from "next/link"
 import { notFound } from "next/navigation"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select" // <-- Thêm Select
 import ImageUploadInput from "@/components/ui/upload"
-
+import { use } from "react"
 // --- Định nghĩa Interface ---
 
 interface Category {
@@ -66,8 +66,9 @@ const initialFormData: FormData = {
 
 // --- Component Chính ---
 
-export default function EditProductPage({ params }: { params: { id: string } }) {
-  const { id } = params
+export default function EditProductPage({ params }: any) {
+
+  const { id } = use(params) as any;
   const router = useRouter()
 
   const [categories, setCategories] = useState<Category[]>([])
@@ -230,7 +231,7 @@ export default function EditProductPage({ params }: { params: { id: string } }) 
   // --- JSX Render ---
 
   // Tìm tên danh mục hiện tại để hiển thị trong SelectValue
-  const currentCategory = categories.find(cat => cat.id === formData.category);
+  const currentCategory = categories?.find(cat => cat.id === formData.category);
 
 
   return (

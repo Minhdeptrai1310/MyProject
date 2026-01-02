@@ -15,10 +15,12 @@ import { useCart } from "@/lib/cart-context"
 import Image from "next/image"
 import { ShoppingBag } from "lucide-react"
 import Link from "next/link"
+import { useUser } from "@/lib/user-context"
 
 export default function CheckoutPage() {
   const router = useRouter()
   const { items, totalPrice, clearCart } = useCart()
+  const { user } = useUser();
   const [isProcessing, setIsProcessing] = useState(false)
 
   const [formData, setFormData] = useState({
@@ -32,7 +34,7 @@ export default function CheckoutPage() {
     note: "",
   })
 
-  const [paymentMethod, setPaymentMethod] = useState("cod")
+  const [paymentMethod, setPaymentMethod] = useState("MONEY_TRANSFER")
 
   if (items.length === 0) {
     return (
@@ -57,8 +59,7 @@ export default function CheckoutPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    setIsProcessing(true)
-
+    setIsProcessing(() => true)
     // TODO: Implement actual order submission to your backend
     const orderData = {
       items,
@@ -69,17 +70,36 @@ export default function CheckoutPage() {
     }
 
     console.log("Order submitted:", orderData)
-
     // Simulate API call
-    setTimeout(() => {
-      setIsProcessing(false)
-      clearCart()
-      router.push("/order-success")
-    }, 2000)
+    try {
+
+      const res = await fetch('http://localhost:8080/order/check-out', {
+        method: 'POST',
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          userId: user?.id,
+          paymentMethod: paymentMethod,
+          address: formData.address
+        })
+      })
+  
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error('Thanh toan loi!');
+      }
+  
+      router.refresh();
+    } catch {
+      throw new Error('Loi Server!');
+    } finally {
+      setIsProcessing(() => false);
+    }
   }
 
-  const shippingFee = 0
-  const total = totalPrice + shippingFee
+  const shippingFee: number = 0
+  const total: number = totalPrice + shippingFee
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -97,7 +117,7 @@ export default function CheckoutPage() {
                   <h2 className="font-serif text-2xl font-bold mb-6">Thông Tin Giao Hàng</h2>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="md:col-span-2">
+                    <div className="md:col-span-2 flex flex-col gap-2">
                       <Label htmlFor="fullName">Họ và tên *</Label>
                       <Input
                         id="fullName"
@@ -107,7 +127,7 @@ export default function CheckoutPage() {
                       />
                     </div>
 
-                    <div>
+                    <div className="flex flex-col gap-2">
                       <Label htmlFor="phone">Số điện thoại *</Label>
                       <Input
                         id="phone"
@@ -118,7 +138,7 @@ export default function CheckoutPage() {
                       />
                     </div>
 
-                    <div>
+                    <div className="flex flex-col gap-2">
                       <Label htmlFor="email">Email</Label>
                       <Input
                         id="email"
@@ -128,7 +148,7 @@ export default function CheckoutPage() {
                       />
                     </div>
 
-                    <div className="md:col-span-2">
+                    <div className="md:col-span-2 flex flex-col gap-2">
                       <Label htmlFor="address">Địa chỉ *</Label>
                       <Input
                         id="address"
@@ -139,7 +159,7 @@ export default function CheckoutPage() {
                       />
                     </div>
 
-                    <div>
+                    <div className="flex flex-col gap-2">
                       <Label htmlFor="ward">Phường/Xã *</Label>
                       <Input
                         id="ward"
@@ -149,7 +169,7 @@ export default function CheckoutPage() {
                       />
                     </div>
 
-                    <div>
+                    <div className="flex flex-col gap-2">
                       <Label htmlFor="district">Quận/Huyện *</Label>
                       <Input
                         id="district"
@@ -159,7 +179,7 @@ export default function CheckoutPage() {
                       />
                     </div>
 
-                    <div className="md:col-span-2">
+                    <div className="md:col-span-2 flex flex-col gap-2">
                       <Label htmlFor="city">Tỉnh/Thành phố *</Label>
                       <Input
                         id="city"
@@ -169,7 +189,7 @@ export default function CheckoutPage() {
                       />
                     </div>
 
-                    <div className="md:col-span-2">
+                    <div className="md:col-span-2 flex flex-col gap-2">
                       <Label htmlFor="note">Ghi chú đơn hàng</Label>
                       <Input
                         id="note"
@@ -186,16 +206,16 @@ export default function CheckoutPage() {
 
                   <RadioGroup value={paymentMethod} onValueChange={setPaymentMethod}>
                     <div className="flex items-center space-x-3 p-4 border rounded-lg mb-3">
-                      <RadioGroupItem value="cod" id="cod" />
-                      <Label htmlFor="cod" className="flex-1 cursor-pointer">
+                      <RadioGroupItem value="MONEY_TRANSFER" id="MONEY_TRANSFER" />
+                      <Label htmlFor="MONEY_TRANSFER" className="flex-1 cursor-pointer">
                         <div className="font-semibold">Thanh toán khi nhận hàng (COD)</div>
                         <div className="text-sm text-muted-foreground">Thanh toán bằng tiền mặt khi nhận hàng</div>
                       </Label>
                     </div>
 
                     <div className="flex items-center space-x-3 p-4 border rounded-lg mb-3">
-                      <RadioGroupItem value="bank" id="bank" />
-                      <Label htmlFor="bank" className="flex-1 cursor-pointer">
+                      <RadioGroupItem value="BANK_TRANSFER" id="BANK_TRANSFER" />
+                      <Label htmlFor="BANK_TRANSFER" className="flex-1 cursor-pointer">
                         <div className="font-semibold">Chuyển khoản ngân hàng</div>
                         <div className="text-sm text-muted-foreground">
                           Chuyển khoản trực tiếp đến tài khoản ngân hàng
@@ -221,8 +241,8 @@ export default function CheckoutPage() {
 
                   <div className="space-y-4 mb-6 max-h-[300px] overflow-y-auto">
                     {items.map((item) => {
-                      const price = item.product.salePrice || item.product.price
-                      return (
+                      const price: any = item?.product.salePrice || item?.product.price
+                      return item && (
                         <div key={`${item.productId}-${item.size}-${item.color}`} className="flex gap-3">
                           <div className="relative w-16 h-20 flex-shrink-0">
                             <Image
