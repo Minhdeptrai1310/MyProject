@@ -1,62 +1,89 @@
+'use client'
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Eye } from "lucide-react"
+import { Eye, CheckIcon } from "lucide-react"
+import { useEffect, useState } from "react"
 
 export default function AdminOrdersPage() {
-  // Mock data - replace with real data from your backend
-  const orders = [
-    {
-      id: "#MH12345",
-      customer: "Nguyễn Văn A",
-      date: "2025-01-15",
-      total: "1,250,000₫",
-      status: "processing",
-      items: 3,
-    },
-    {
-      id: "#MH12344",
-      customer: "Trần Thị B",
-      date: "2025-01-14",
-      total: "850,000₫",
-      status: "delivered",
-      items: 2,
-    },
-    {
-      id: "#MH12343",
-      customer: "Lê Văn C",
-      date: "2025-01-14",
-      total: "2,100,000₫",
-      status: "shipping",
-      items: 5,
-    },
-    {
-      id: "#MH12342",
-      customer: "Phạm Thị D",
-      date: "2025-01-13",
-      total: "650,000₫",
-      status: "delivered",
-      items: 1,
-    },
-    {
-      id: "#MH12341",
-      customer: "Hoàng Văn E",
-      date: "2025-01-13",
-      total: "1,800,000₫",
-      status: "processing",
-      items: 4,
-    },
-  ]
+  const [orders, setOrders] = useState<any>([])
+  const getAllOrder = async () => {
+    try {
+      const res = await fetch('http://localhost:8080/order/', {
+        method: "GET",
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      })
+      const data = await res.json()
+      if (res.ok && data.success)
+        setOrders(data.data);
+    } catch {
+      throw new Error('Loi Server!')
+    }
+  }
+  useEffect(() => {
+
+    getAllOrder();
+  }, [])
 
   const getStatusBadge = (status: string) => {
     const statusMap = {
-      processing: { label: "Đang xử lý", variant: "default" as const },
-      shipping: { label: "Đang giao", variant: "secondary" as const },
-      delivered: { label: "Đã giao", variant: "outline" as const },
-      cancelled: { label: "Đã hủy", variant: "destructive" as const },
+      PENDING_PAYMENT: {
+        label: "Chờ thanh toán",
+        variant: "outline" as const,
+      },
+      PAYMENT_CONFIRMED: {
+        label: "Đã xác nhận thanh toán",
+        variant: "secondary" as const,
+      },
+      PROCESSING: {
+        label: "Đang xử lý",
+        variant: "default" as const,
+      },
+      SHIPPING: {
+        label: "Đang giao",
+        variant: "secondary" as const,
+      },
+      SHIPPED: {
+        label: "Đã giao",
+        variant: "outline" as const,
+      },
+      COMPLETED: {
+        label: "Hoàn thành",
+        variant: "default" as const,
+      },
+      CANCELLED: {
+        label: "Đã hủy",
+        variant: "destructive" as const,
+      },
+      EXPIRED: {
+        label: "Hết hạn",
+        variant: "destructive" as const,
+      },
     }
     const statusInfo = statusMap[status as keyof typeof statusMap]
     return <Badge variant={statusInfo.variant}>{statusInfo.label}</Badge>
+  }
+
+  const confirmPayment = async (id: string) => {
+    try {
+      const res = await fetch(`http://localhost:8080/order/${id}/confirm_payment`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      })
+      const data = await res.json();
+      if (res.ok && data.success) {
+        getAllOrder();
+      }
+      else alert('Xac nhan that bai');
+    }
+    catch {
+      alert('Loi server');
+    }
   }
 
   return (
@@ -87,15 +114,21 @@ export default function AdminOrdersPage() {
                 </tr>
               </thead>
               <tbody>
-                {orders.map((order) => (
+                {orders.map((order: any) => (
                   <tr key={order.id} className="border-b hover:bg-muted/50">
-                    <td className="py-3 px-4 font-medium">{order.id}</td>
-                    <td className="py-3 px-4">{order.customer}</td>
-                    <td className="py-3 px-4 text-muted-foreground">{order.date}</td>
-                    <td className="py-3 px-4">{order.items} sản phẩm</td>
-                    <td className="py-3 px-4 font-semibold">{order.total}</td>
+                    <td className="py-3 px-4 font-medium">{order.orderCode}</td>
+                    <td className="py-3 px-4">{order.user_info.name}</td>
+                    <td className="py-3 px-4 text-muted-foreground">{order.createdAt}</td>
+                    <td className="py-3 px-4">{order.orderItems.length} sản phẩm</td>
+                    <td className="py-3 px-4 font-semibold">{order.totalAmount}</td>
                     <td className="py-3 px-4">{getStatusBadge(order.status)}</td>
                     <td className="py-3 px-4">
+                      {order.status === "PENDING_PAYMENT" && (
+                        <Button variant="default" size="sm" onClick={() => confirmPayment(order.id)}>
+                          <CheckIcon className="h-4 w-4 mr-1" />
+                          {`Xác nhận thanh toán`}
+                        </Button>
+                      )}
                       <Button variant="ghost" size="sm">
                         <Eye className="h-4 w-4 mr-1" />
                         Xem

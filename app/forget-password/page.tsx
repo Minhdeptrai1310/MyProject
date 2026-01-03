@@ -23,7 +23,27 @@ export default function LoginPage() {
   const [user, setUser] = useState();
 
   const handleSubmit = async (e: React.FormEvent) => {
-    
+    e.preventDefault();
+    try {
+      setIsLoading(true);
+      const res = await fetch('http://localhost:8080/auth/forget_password', {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email: formData.email
+        })
+      })
+      const data = await res.json();
+      if (res.ok && data.success) {
+        router.push('/login');
+      }
+    } catch {
+      throw new Error('Loi Server!');
+    } finally {
+      setIsLoading(false);
+    }
   }
 
   return (
