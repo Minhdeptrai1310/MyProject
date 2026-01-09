@@ -44,7 +44,7 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
 
         const data = await res.json()
         if (mounted) {
-          setProduct(data)
+          setProduct(data.data)
         }
       } catch (err) {
         console.error("❌ Fetch product error:", err)
@@ -100,7 +100,8 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
     addItem(product.id, selectedSize, selectedColor, quantity)
     alert("Đã thêm vào giỏ hàng!")
   }
-
+  console.log(product);
+  
   return (
     <div className="min-h-screen flex flex-col">
       <Header />
@@ -119,7 +120,7 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
                   priority
                 />
                 {hasDiscount && (
-                  <Badge className="absolute top-4 right-4 bg-destructive text-destructive-foreground text-base px-3 py-1">
+                  <Badge className="absolute top-4 right-4 bg-destructive text-destructive-foreground text-base px-3 py-1 text-[#111113] font-bold">
                     -{Math.round(((product.price - displayPrice) / product.price) * 100)}%
                   </Badge>
                 )}

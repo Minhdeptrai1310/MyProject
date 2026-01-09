@@ -90,7 +90,7 @@ export default function CheckoutPage() {
         throw new Error('Thanh toan loi!');
       }
   
-      router.refresh();
+      router.push('/order-success');
     } catch {
       throw new Error('Loi Server!');
     } finally {

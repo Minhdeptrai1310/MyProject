@@ -11,6 +11,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
 import { GoogleOAuthProvider, GoogleLogin } from '@react-oauth/google';
+import { useCart } from "@/lib/cart-context"
+import { useUser } from "@/lib/user-context"
 
 export default function LoginPage() {
   const router = useRouter()
@@ -20,7 +22,9 @@ export default function LoginPage() {
   })
 
   const [isLoading, setIsLoading] = useState(false)
+  const {getAllCartByUserId} = useCart()
   const [user, setUser] = useState();
+  const { setUser: setUserContext } = useUser();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -48,7 +52,8 @@ export default function LoginPage() {
       localStorage.setItem("access_token", data.data.access_token)
       localStorage.setItem("token_expire", (Date.now() + data.data.expires_in * 1000).toString());
       localStorage.setItem("user_info", JSON.stringify(data.data.user))
-
+      setUserContext(data.data.user);
+      getAllCartByUserId();
       // Điều hướng dựa trên quyền (role)
       if (data.data.user.role === "admin" || data.data.user.email === "admin@minh.vn") {
         router.push("/admin")
@@ -81,7 +86,8 @@ export default function LoginPage() {
         localStorage.setItem('access_token', data.token);
         localStorage.setItem("token_expire", (Date.now() + data.token_expire * 1000).toString());
         localStorage.setItem("user_info", JSON.stringify(data.user))
-        setUser(data.user);
+        setUserContext(data.user);
+        getAllCartByUserId();
         router.push("/")
       }
     } catch (error) {

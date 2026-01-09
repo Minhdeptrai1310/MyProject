@@ -12,7 +12,7 @@ export function Header() {
   const [isLoggedIn, setIsLoggedIn] = useState(false)
   const [userInfo, setUserInfo] = useState<any>(null)
   const [showUserMenu, setShowUserMenu] = useState(false)
-  const { items } = useCart()
+  const { items, clearCart, getAllCartByUserId } = useCart()
   const router = useRouter()
 
   useEffect(() => {
@@ -26,6 +26,7 @@ export function Header() {
         console.log(parsedUser);
         setUserInfo(parsedUser)
         setIsLoggedIn(true)
+        getAllCartByUserId()
       } catch (err) {
         console.error("❌ Error parsing user info:", err)
         // Nếu dữ liệu trong LocalStorage bị lỗi JSON, xóa luôn để tránh lỗi lặp lại
@@ -49,6 +50,8 @@ export function Header() {
     setUserInfo(null)
     setShowUserMenu(false)
     setMobileMenuOpen(false)
+
+    clearCart()
 
     router.push("/login")
   }
@@ -80,6 +83,11 @@ export function Header() {
 
           {/* Actions */}
           <div className="flex items-center gap-4">
+            <Link href="/orders">
+              <Button size="lg" className="w-full">
+                Đơn hàng của tôi
+              </Button>
+            </Link>
             <Link href="/cart" className="relative">
               <Button variant="ghost" size="icon">
                 <ShoppingCart className="h-5 w-5" />
@@ -102,7 +110,7 @@ export function Header() {
                     size="icon"
                     className="rounded-full bg-gray-100 cursor-pointer"
                   >
-                    {userInfo?.picture ? <img src={userInfo?.picture} className="overflow-hidden rounded-full"/> : <User className="h-5 w-5" />}
+                    {userInfo?.picture ? <img src={userInfo?.picture} className="overflow-hidden rounded-full" /> : <User className="h-5 w-5" />}
                   </Button>
                   <span>{userInfo?.fullName || userInfo?.name || ""}</span>
                 </div>

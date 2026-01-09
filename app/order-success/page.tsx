@@ -20,11 +20,6 @@ export default function OrderSuccessPage() {
             Cảm ơn bạn đã đặt hàng. Chúng tôi đã nhận được đơn hàng của bạn và sẽ xử lý trong thời gian sớm nhất.
           </p>
 
-          <div className="bg-secondary p-4 rounded-lg mb-6">
-            <p className="text-sm text-muted-foreground mb-1">Mã đơn hàng</p>
-            <p className="font-bold text-lg">#MH{Date.now().toString().slice(-8)}</p>
-          </div>
-
           <p className="text-sm text-muted-foreground mb-6">
             Thông tin chi tiết đơn hàng đã được gửi đến email của bạn. Bạn có thể theo dõi trạng thái đơn hàng trong tài
             khoản của mình.

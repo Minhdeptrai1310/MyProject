@@ -1,5 +1,8 @@
+"use client"
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Package, ShoppingCart, Users, DollarSign, TrendingUp, TrendingDown } from "lucide-react"
+import { useEffect, useState } from "react"
 
 export default function AdminDashboardPage() {
   // Mock data - replace with real data from your backend
@@ -34,12 +37,80 @@ export default function AdminDashboardPage() {
     },
   ]
 
-  const recentOrders = [
-    { id: "#MH12345", customer: "Nguyễn Văn A", total: "1,250,000₫", status: "Đang xử lý" },
-    { id: "#MH12344", customer: "Trần Thị B", total: "850,000₫", status: "Đã giao" },
-    { id: "#MH12343", customer: "Lê Văn C", total: "2,100,000₫", status: "Đang giao" },
-    { id: "#MH12342", customer: "Phạm Thị D", total: "650,000₫", status: "Đã giao" },
-  ]
+  const [orders, setOrders] = useState<any>([])
+  const getAllOrder = async () => {
+    try {
+      const res = await fetch('http://localhost:8080/order/', {
+        method: "GET",
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      })
+      const data = await res.json()
+      if (res.ok && data.success)
+        setOrders(data.data);
+    } catch {
+      throw new Error('Loi Server!')
+    }
+  }
+
+  useEffect(() => {
+    getAllOrder();
+  }, [])
+
+  console.log("All Orders: ", orders);
+
+  const handleStatusBadge = (status: string) => {
+    switch (status) {
+      case "PENDING_PAYMENT":
+        return "Chờ thanh toán"
+      case "PAYMENT_CONFIRMED":
+        return "Đã xác nhận thanh toán"
+      case "PROCESSING":
+        return "Đang xử lý"
+      case "SHIPPING":
+        return "Đang giao"
+      case "SHIPPED":
+        return "Đã giao"
+      case "COMPLETED":
+        return "Hoàn thành"
+      case "CANCELLED":
+        return "Đã hủy"
+      case "EXPIRED":
+        return "Hết hạn"
+      default:
+        return "Không xác định"
+    }
+  }
+
+  const handleStatusBadgeColor = (status: string) => {
+    switch (status) {
+      case "PENDING_PAYMENT":
+        return "yellow"
+      case "PAYMENT_CONFIRMED":
+        return "blue"
+      case "PROCESSING":
+        return "gray"
+      case "SHIPPING":
+        return "blue"
+      case "SHIPPED":
+        return "green"
+      case "COMPLETED":
+        return "gray"
+      case "CANCELLED":
+        return "red"
+      case "EXPIRED":
+        return "red"
+      default:
+        return "gray"
+    }
+  }
+  const recentOrders = orders.slice(0, 5).map((order: any) => ({
+    id: order.orderCode,
+    customer: order.user_info.name,
+    total: order.totalAmount.toLocaleString('vi-VN', { style: 'currency', currency: 'VND' }),
+    status: handleStatusBadge(order.status),
+  }))
 
   return (
     <div className="space-y-6">
@@ -79,7 +150,7 @@ export default function AdminDashboardPage() {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {recentOrders.map((order) => (
+            {recentOrders.map((order: any) => (
               <div key={order.id} className="flex items-center justify-between p-4 border rounded-lg">
                 <div className="flex-1">
                   <p className="font-semibold">{order.id}</p>
@@ -90,13 +161,7 @@ export default function AdminDashboardPage() {
                 </div>
                 <div>
                   <span
-                    className={`px-3 py-1 rounded-full text-xs font-medium ${
-                      order.status === "Đã giao"
-                        ? "bg-green-100 text-green-700"
-                        : order.status === "Đang giao"
-                          ? "bg-blue-100 text-blue-700"
-                          : "bg-yellow-100 text-yellow-700"
-                    }`}
+                    className={`px-3 py-1 rounded-full text-xs font-medium bg-${handleStatusBadgeColor(order.status)}-100 text-${handleStatusBadgeColor(order.status)}-800`}
                   >
                     {order.status}
                   </span>

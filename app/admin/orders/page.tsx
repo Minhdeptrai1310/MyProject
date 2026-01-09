@@ -23,8 +23,8 @@ export default function AdminOrdersPage() {
       throw new Error('Loi Server!')
     }
   }
+  
   useEffect(() => {
-
     getAllOrder();
   }, [])
 

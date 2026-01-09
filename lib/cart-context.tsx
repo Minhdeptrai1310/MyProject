@@ -14,6 +14,7 @@ interface CartContextType {
   clearCart: () => void
   totalItems: number
   totalPrice: number
+  getAllCartByUserId: () => void
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined)
@@ -35,13 +36,14 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     }
 
     const data = await res.json()
-    const cartData = Array.isArray(data) ? data : data?.data ?? []
-    const cartDatas = cartData.map((data: any) => {
+    const cartDatas: any[] = [];
+    data?.data?.map((data: any) => {
       const product = getProductById(data.productId);
       if (!product) return;
       data.product = product;
-      return data;
+      cartDatas.push(data);
     })
+    
     setItems(() => [...cartDatas]);
   }
   useEffect(() => {
@@ -130,6 +132,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         clearCart,
         totalItems,
         totalPrice,
+        getAllCartByUserId
       }}
     >
       {children}
